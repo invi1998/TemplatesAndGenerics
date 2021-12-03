@@ -287,6 +287,155 @@ namespace _nmsp2
 
 ### 返回左值引用还是返回右值引用
 
+```c++
+
+    // 为了做测试，我这里自己实现一个类似std::declval的代码
+    
+    template<typename T>
+    // T myDeclval() noexcept;         // 直接返回T 会导致出现语义限制问题
+    // T& myDeclval() noexcept;        // 返回 T& 左值引用类型
+    T&& myDeclval() noexcept;       // 返回右值引用
+-----------------------------------------------------------------------------------------------------
+
+std::cout << "--------------------------------------------------------------------------" << std::endl;
+        
+        // 查看A类型返回左值引用是返回啥
+        std::cout << "decltype(myDeclval<A>())的返回类型 = " << type_id_with_cvr<decltype(myDeclval<A>())>().pretty_name() << std::endl;
+        // decltype(myDeclval<A>())的返回类型 = _nmsp2::A&
+        // 改成返回右值引用后
+        // decltype(myDeclval<A>())的返回类型 = _nmsp2::A&&
+        
+        
+        // 查看A类型的左值引用返回左值引用是返回啥
+        std::cout << "decltype(myDeclval<A&>())的返回类型 = " << type_id_with_cvr<decltype(myDeclval<A&>())>().pretty_name() << std::endl;
+        // decltype(myDeclval<A&>())的返回类型 = _nmsp2::A&
+        // 改成返回右值引用后
+        // decltype(myDeclval<A&>())的返回类型 = _nmsp2::A&
+        
+        
+        // 查看A类型的右值引用返回左值引用是返回啥
+        std::cout << "decltype(myDeclval<A&&>())的返回类型 = " << type_id_with_cvr<decltype(myDeclval<A&&>())>().pretty_name() << std::endl;
+        // decltype(myDeclval<A&&>())的返回类型 = _nmsp2::A&
+        // 改成返回右值引用后
+        // decltype(myDeclval<A&&>())的返回类型 = _nmsp2::A&&
+        
+        // 通过这个打印看到，不管我们给定的是左值引用还是右值引用，返回的都是左值引用
+        // （其实这里发生了引用折叠，很好理解，因为我们是左值引用，&，所以不管他给的是左值&还是右值&&,统统折叠成左值引用返回）
+    
+        // 当我们改成防护右值引用后，发现，第一个和第三个返回类型变成了右值引用（第三个发生了引用折叠， && && 折叠成 &&）
+        // 可以看到返回右值引用的时候，他实际能得到的类型更全面（所以为什么标准库中std::declval返回右值引用类型）
+```
+
+
+
 ### 调用引用限定符修饰的成员函数范例
 
+```c++
+namespace _nmsp3
+{
+    template<typename T>
+    T&& myDeclval() noexcept;
+    
+    
+    class ALR
+    {
+    public:
+        void onAnyValue()
+        {
+            std::cout << "ALR::onAnyValue()成员函数执行了" << std::endl;
+        }
+        
+        void onLvalue()&   // 函数末尾添加一个 & 表示只能被类ALR的左值对象调用（这个就叫做引用限定符）
+        {
+            std::cout << "ALR::onLvalue()函数被左值调用" << std::endl;
+        }
+        
+        void onRvalue()&&   // 函数末尾添加两个 && 表示只能被类ALR的右值对象调用（这个就叫做引用限定符）
+        {
+            std::cout << "ALR::onRvalue()函数被右值调用" << std::endl;
+        }
+        
+    };
+    
+    
+    void func()
+    {
+        ALR alr;    // 左值对象ALR
+        alr.onLvalue();
+        // ALR::onLvalue()函数被左值调用
+
+        alr.onRvalue(); // 编译错误，因为onRvalue只能被右值对象调用
+        
+        
+        // 类名加()就是创建临时对象，临时对象就是右值,所以ALR()就是右值对象
+        
+        ALR().onRvalue();
+        // ALR::onRvalue()函数被右值调用
+        
+        ALR().onLvalue();  // 编译报错，因为onLvalue()只能被左值对象调用
+        
+        decltype(myDeclval<ALR>().onAnyValue());
+        
+        decltype(myDeclval<ALR&>().onLvalue());  // myDeclval<ALR&>这种情况返回的是左值引用，左值引用对象调用onLvalue没有问题
+        
+        decltype(myDeclval<ALR&&>().onRvalue()); // myDeclval<ALR&&>这种情况返回的是右值引用，右值引用对象调用onRvalue没有问题
+        
+        decltype(myDeclval<ALR&>().onRvalue());  // myDeclval<ALR&>这种情况返回的是左值引用，左值引用对象调用onRvalue编译错误
+        
+        decltype(myDeclval<ALR&&>().onLvalue()); // myDeclval<ALR&&>这种情况返回的是右值引用，右值引用对象调用onlvalue编译错误
+        
+        
+    }
+}
+```
+
+
+
 ## 推导函数返回值范例
+
+```c++
+namespace _nmsp4
+{
+    int myfunc(int a, int b)    // 函数类型一般是由函数返回值和参数类型决定，与函数名没有关系
+    {                           // 所以myfunc代表大函数类型是 int(int, int)
+        return a+b;
+    }
+    
+    
+    // std::declval<U_Args>中的U_Args写成U_Args&或者U_Args&&都一样，不影响
+    // decltype(std::declval<T_F>() (std::declval<U_Args>()...))这一串是函数模板的返回值类型推导代码
+    // 根据函数类型以及函数参数类型推导出函数模板返回类型 （这里就推断成int类型）
+    template<typename T_F, typename... U_Args>
+    decltype(std::declval<T_F>() (std::declval<U_Args>()...)) TestFnRtnImpl(T_F func, U_Args... args)
+    {
+        auto rtnvalue = func(args...);
+        return rtnvalue;
+    }
+    
+    void func()
+    {
+        auto result = TestFnRtnImpl(myfunc, 100, 200, 300);
+        // 我们在调用TestFnRtnImpl函数模板的时候，没有指定模板参数，参数类型是编译器自行推断出来的
+        // 这个时候T_F被推断成函数指针类型 int(*)(int, int)
+        // decltype(std::declval<T_F>() (std::declval<U_Args>()...)) 最终推断成int类型
+        // 也就是该函数模板在该行代码的调用下的返回类型
+        // std::declval<T_F>() 因为T_F是int(*)(int, int)，放进去返回来的就是int(*&&)(int, int)
+        // 函数指针的右值引用类型，（其实这里只需要简单理解成函数指针类型）
+        // 比如：
+        int (*fp_var)(int x, int y);    // 函数指针类型，fp_var = int(*)(int, int)
+        int (*&& yy_fp_var)(int x, int y) = std::move(fp_var);  // 函数指针的右值引用类型， yy_fp_var = int(*&&)(int, int)
+        // 那现在这个yy_fp_var就可以代表fp_var了，
+        // 所以这就是为什么说 函数指针的右值引用类型，（其实这里只需要简单理解成函数指针类型）
+        
+        fp_var = myfunc();
+        
+        std::cout << fp_var(1,2) << std::endl;// 3
+        
+        std::cout << yy_fp_var(1,2) << std::endl;// 3
+        
+        std::cout << result << std::endl;
+        // 300
+    }
+}
+```
+
