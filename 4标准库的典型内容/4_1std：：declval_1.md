@@ -407,6 +407,9 @@ namespace _nmsp4
     // 根据函数类型以及函数参数类型推导出函数模板返回类型 （这里就推断成int类型）
     template<typename T_F, typename... U_Args>
     decltype(std::declval<T_F>() (std::declval<U_Args>()...)) TestFnRtnImpl(T_F func, U_Args... args)
+    // decltype(T_F(U_Args)) TestFnRtnImpl(T_F func, U_Args... args)
+    // 这种写法报错：因为decltype不是这么用的，decltype后面的()中出现的一般都是变量，对象，表达式，函数名，函数指针名等等
+    // 但是不能出现类型名，所以才会报错
     {
         auto rtnvalue = func(args...);
         return rtnvalue;
@@ -414,7 +417,7 @@ namespace _nmsp4
     
     void func()
     {
-        auto result = TestFnRtnImpl(myfunc, 100, 200, 300);
+        auto result = TestFnRtnImpl(myfunc, 100, 200);
         // 我们在调用TestFnRtnImpl函数模板的时候，没有指定模板参数，参数类型是编译器自行推断出来的
         // 这个时候T_F被推断成函数指针类型 int(*)(int, int)
         // decltype(std::declval<T_F>() (std::declval<U_Args>()...)) 最终推断成int类型
@@ -427,14 +430,54 @@ namespace _nmsp4
         // 那现在这个yy_fp_var就可以代表fp_var了，
         // 所以这就是为什么说 函数指针的右值引用类型，（其实这里只需要简单理解成函数指针类型）
         
-        fp_var = myfunc();
+        fp_var = myfunc;
         
         std::cout << fp_var(1,2) << std::endl;// 3
         
         std::cout << yy_fp_var(1,2) << std::endl;// 3
         
+        
+        // 现在看完了前半部分，现在来看后半部分【(std::declval<U_Args>()...)】
+        // decltype(std::declval<U_Args>()...)这种写法，推导出来的是两个int && (也就是上面我们给定的100， 200这两个实参)
+        
         std::cout << result << std::endl;
         // 300
+        
+        // 当然如果我们想显式的指定模板函数的第一个参数类型，可以这样写
+        auto result2 = TestFnRtnImpl<int(int, int)>(myfunc, 100, 300);
+        cout << result2 << endl;
+    }
+}
+```
+
+当然，还有另外一种写法，使用返回类型后置语法，也可以实现相同的功能
+
+```c++
+namespace _nmsp5
+{
+    // 当然，还有另外一种写法，使用返回类型后置语法，也可以实现相同的功能
+    template<typename T_F, typename... U_Args>
+    auto TestFnRtnImpl(T_F func, U_Args... args)->decltype(func(args...))
+    // decltype(func(args...)) 在下面调用的场景下，能够推断出来的返回类型是int类型
+    // 如果不加参数，改为decltype(func)，推断出来的就是int(*)类型
+    // 所以，这也就是为什么说 【函数类型一般是由函数返回值和参数类型决定】
+    // 你带与不带参数进行类型推断，是有本质区别的
+    {
+        auto rtnvalue = func(args...);
+        return rtnvalue;
+    }
+    
+    int myfunc(int a, int b)
+    {
+        return a+b;
+    }
+    
+    void func()
+    {
+        auto result = TestFnRtnImpl(myfunc, 99, 80);
+        
+        std::cout << result << std::endl;
+        // 179
     }
 }
 ```
