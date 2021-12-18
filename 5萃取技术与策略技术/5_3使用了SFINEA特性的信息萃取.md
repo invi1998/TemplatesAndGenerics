@@ -159,6 +159,120 @@ namespace _nmsp3
 
 ## 用成员函数重载实现is_convertible
 
+is_convertible c++标准库中的一个类模板，用于判断一个类型能否隐式的装换到另一个类型。比如一般的从int转到float，从float转到int这些都是可以的，
+
+```c++
+namespace _nmsp4
+{
+    // 用成员函数重载实现is_convertible
+    class A
+    {};
+    
+    class B:public A
+    {};
+    // 因为类B的父类是类A，所以从类B装换到类A是可以的，但是从类A转换到类B是不可以的
+    
+    void func()
+    {
+        std::cout << std::is_convertible<float, int>() << std::endl;  // 1
+        std::cout << std::is_convertible<int, float>() << std::endl;  // 1
+        std::cout << std::is_convertible<B, A>() << std::endl;  // 1
+        std::cout << std::is_convertible<A, B>() << std::endl;  // 0
+    }
+}
+```
+
+
+
+test这两个重载函数，他的返回类型分别是true_type和false_type，如果能从FROM类型转到TO类型  
+
+那么就会匹配返回true_type的这个test成员函数模板，否者就会匹配返回false_type的这个成员函数模板
+
+值得注意的是返回true_type的这个成员函数模板的模板参数默认值写法
+
+decltype(testFunc(std::declval<FROM>()))
+
+看起来是使用decltype去推断 testFunc(std::declval<FROM>()) 这个成员函数的返回类型
+
+而传递给testFunc这个成员函数的实参 是 std::declval<FROM>()
+
+这个东西他其实就是一个（或者看成一个） FROM 类型的对象
+
+如果FROM类型能被顺利的转换为TO类型的话，那么通过decltype去推断testFunc的返回类型的写法（也就是第一个重载的写法）就是有效的,那么test就会返回true_type，否者就会匹配第二个test，返回false_type    
+
+注意这里为什么能用testFunc这个函数来进行类型筛选呢？
+因为 testFunc 他本身接收的是 TO类型的形参，如果FROM能转成TO类型，自然就会选择第一个test，反之就会选择第二个test
+
+在这里说明一下，为什么不用 `From()` 而用 `std::declval<From>()` ， 因为前者要求 `From` 是内置类型 或 是拥有默认构造函数的类（包括共同体）， 而后者不需要，作为交换，后者只能用于不求值的地方。
+
+```c++
+namespace _nmsp5
+{
+     // 用成员函数重载实现is_convertible
+    class A
+    {};
+    
+    class B:public A
+    {};
+    // 因为类B的父类是类A，所以从类B装换到类A是可以的，但是从类A转换到类B是不可以的
+    
+    // 实现测试能否从FROM类型到TO类型的隐式类型装换 的类模板
+    template<class FROM, class TO>
+    struct IsConvertibleHelper
+    {
+    private:
+        static void testFunc(TO);
+        
+        template<typename = decltype(testFunc(std::declval<FROM>()))>
+        static std::true_type test(void *);
+        
+        template<typename = decltype(testFunc(std::declval<FROM>()))>
+        static std::false_type test(...);
+        
+    public:
+        using type = decltype(test(nullptr));
+    };
+    // test这两个重载函数，他的返回类型分别是true_type和false_type，如果能从FROM类型转到TO类型
+    // 那么就会匹配返回true_type的这个test成员函数模板，否者就会匹配返回false_type的这个成员函数模板
+    // 值得注意的是返回true_type的这个成员函数模板的模板参数默认值写法
+    // decltype(testFunc(std::declval<FROM>()))
+    // 看起来是使用decltype去推断 testFunc(std::declval<FROM>()) 这个成员函数的返回类型
+    // 而传递给testFunc这个成员函数的实参 是 std::declval<FROM>()
+    // 这个东西他其实就是一个（或者看成一个） FROM 类型的对象
+    // 如果FROM类型能被顺利的转换为TO类型的话，那么通过decltype去推断testFunc的返回类型的写法
+    // （也就是第一个重载的写法）就是有效的,那么test就会返回true_type，否者就会匹配第二个test，返回false_type
+    
+    // 注意这里为什么能用testFunc这个函数来进行类型筛选呢？
+    // 因为 testFunc 他本身接收的是 TO类型的形参，如果FROM能转成TO类型，自然就会选择第一个test，反之就会选择第二个test
+    
+    template<typename FROM, typename TO>
+    struct IsConvertible : public IsConvertibleHelper<FROM, TO>::type
+    {};
+    
+    // 简化书写，使用变量模板
+    template<typename FROM, typename TO>
+    constexpr bool IsConvertible_v = IsConvertible<FROM, TO>::value;
+    
+    void func()
+    {
+        std::cout << IsConvertible<float, int>::value << std::endl;  // 1
+        std::cout << IsConvertible<int, float>::value << std::endl;  // 1
+        std::cout << IsConvertible<B, A>::value << std::endl;  // 1
+        std::cout << IsConvertible<A, B>::value << std::endl;  // 0
+        
+        // ----------------------------------
+        
+        std::cout << IsConvertible_v<float, int> << std::endl;  // 1
+        std::cout << IsConvertible_v<int, float> << std::endl;  // 1
+        std::cout << IsConvertible_v<B, A> << std::endl;  // 1
+        std::cout << IsConvertible_v<A, B> << std::endl;  // 0
+    }
+    
+}
+```
+
+
+
 ## 用成员函数重载实现is_class
 
 ## 用成员函数重载实现is_base_of
