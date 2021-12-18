@@ -483,3 +483,48 @@ namespace _nmsp4
 
 
 ## 用类模板特化实现is_default_constructible
+
+用类模板特化的方式实现 is_default_constructible
+需要用到std::void_t这样一个别名模板，能够检测到应用SFINEA特性时出现的非法类型
+
+> template<typename... Args>
+> using void_t = void;
+
+```c++
+namespace _nmsp5
+{
+    // 泛化版本
+    template<typename T, typename U = std::void_t<>>
+    class IsDefConstructible:public std::false_type
+    {
+        // 当T类型不能被缺省构造的时候，因为SFINEA特性，就走的是泛化版本的分支，继承false_type
+
+    };
+    
+    // 特化版本
+    template<typename T>
+    class IsDefConstructible<T, std::void_t<decltype(T())>>:public std::true_type
+    {
+        // 首先，该类模板首先会优先调用特化版本
+        // 如果T类型能被缺省构造，那么decltype(T())中的T()就能被构造，这种写法就是合法的，那么就选择这个特化版本
+        // 然后因为继承自true_type，所以就为 1
+    };
+    
+    
+    // -------------------------------------------
+    class A{};
+    class B
+    {
+    public:
+        B(int a){};
+    };
+    
+    
+    void func()
+    {
+        std::cout << IsDefConstructible<A>::value << std::endl; // 1
+        std::cout << IsDefConstructible<B>() << std::endl; // 0
+    }
+}
+```
+
