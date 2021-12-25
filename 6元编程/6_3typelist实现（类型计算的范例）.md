@@ -241,7 +241,60 @@ find继承关系图
 
 ### 遍历typelist找到sizeof值最大的元素（get_maxsize_type）
 
+遍历typelist找到sizeof值最大的元素（get_maxsize_type），一个typelist中有众多类型，这些类型所占用的内存是各不相同的，使用sizeof可以轻易求得这些类型所占用的内存字节数
 
+​    元编程计算完整性
+
+- ​    1）迭代构造（循环构造），也就是在 get_maxsize_type 模板中是需要融入递归编程
+- ​    2）状态变量：指的就是类模板 get_maxsize_type 中的模板参数，因为这里的类模板的模板参数就是typelist
+- ​    所以，每次递归，typelist中的元素数量必然要减少一个，最终才能符合递归结束条件
+- ​    3）执行路径的选择，使用std::conditional 以及 get_maxsize_type 类模板的特化达到递归结束的效果
+- ​    这个特化版本的特点就是模板参数 typelist 中的模板参数为 0 个
+- ​    4）运算对象，类模板中的type成员里面记录的就是当前sizeof值最大的类型
+
+```c++
+// 泛化版本
+    template<class TPLT>
+    class get_maxsize_type
+    {
+    private:
+        // 当前 get_maxsize_type 中 typelist（模板参数TPLT）的第一个元素
+        using tl_first_elem = typename front<TPLT>::type;
+        // 获取typelist中的第一个元素（这个元素其实就是一个类型）
+        
+        // 当前 get_maxsize_type 中 typelist（模板参数TPLT）去除第一个元素后的 剩余元素
+        using tl_remain = typename pop_front<TPLT>::type;
+        
+        // 递归下去的 get_maxsize_type 中 typelist（模板参数 tl_remain）的第一个元素
+        // 其实这个元素就是用来做sizeof值比较的
+        using tl_first_elem_rec = typename get_maxsize_type<tl_remain>::type;
+        
+       
+    public:
+        using type = typename std::conditional<
+            sizeof(tl_first_elem) >= sizeof(tl_first_elem_rec),
+            tl_first_elem,
+            tl_first_elem_rec
+            >::type;
+        
+        // 递归的比较原则就是通过get_maxsize_type来取得typelist中的第一个元素，然后分别与typelist中的元素依次减少一个的
+        // get_maxsize_type 中的那个 typelist 的第一个元素进行sizeof值的比较比较，将sizeof值比较大的类型存在type中
+        
+    };
+    
+    // 特化版本
+    template<>
+    class get_maxsize_type<typelist<>>
+    {
+        // 一直比较直到typelist中再没有元素的时候，就会满足 get_maxsize_type 的特化版本，
+        // 特护版本中的这个type给的是char类型，char类型的sizeof值是,1是sizeof中最小的，
+        // 因此在比较并寻找sizeof值最大的时候，这个char类型永远不会被选中，
+        // 因此这里把char作为递归结束的type，完全没有问题，显得非常合适
+    public:
+        using type = char;
+        // 这里给一个char，没有比char再小的类型了
+    };
+```
 
 递归实例化流程
 
