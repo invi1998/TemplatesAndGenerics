@@ -209,4 +209,16 @@ int main()
 
 ## 扩展操作接口（算法）
 
+### 根据索引号查找typelist的某个元素（find）
+
+
+
+find继承关系图
+
+![](../img/impicture_20211225_170226.png)
+
+### 遍历typelist找到sizeof值最大的元素（get_maxsize_type）
+
+### 颠倒（翻转）一个typelist中的元素的顺序（reverse）
+
 ## typelist的老式设计与typelist的思考
