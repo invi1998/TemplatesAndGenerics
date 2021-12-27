@@ -735,3 +735,104 @@ int main()
 
 
 ## typelist的老式设计与typelist的思考
+
+### typelist的老式设计
+
+```c++
+namespace tplt2
+{
+    // typelist 的老式设计
+    
+    
+    // 定义一个空的typelist类
+    class NullTypeList
+    {};
+    
+    template<class T, class U = NullTypeList>
+    class Typelist
+    {
+    public:
+        using Head = T; // Typelist 中的第一个元素（列表头）
+        using Tail = U; // Typelist 中的其余元素 （这里会用到嵌套列表，（因为在可变参类模板出世之前，不用这种技术很难做到可变参））
+        
+    };
+    
+    // ------------------------------------------------------------------------------
+    // 取得Typelist容器中的第一个元素
+    template<class TPLT>
+    class front
+    {
+    public:
+        using type = typename TPLT::Head;
+    };
+    
+    // ------------------------------------------------------------------------------
+    // 取得Typelist中的元素数量
+    // 泛化版本
+    template<class TPLT>
+    class size;
+    
+    // 特化版本1
+    // Typelsit为空
+    template<>
+    class size<NullTypeList>
+    {
+    public:
+        static inline size_t value = 0;
+    };
+    
+    // 特化版本2
+    // Typelsit不为空
+    // 注意啊：这里T是一个类型，U是一个Typelist。要这么理解
+    template<class T, class U>
+    class size<Typelist<T, U>>
+    {
+    public:
+        static inline size_t value = size<U>::value + 1;
+        // 递归
+    };
+    
+    // ------------------------------------------------------------------------------
+    // 从Typelist中移除第一个元素
+    template<class TPLT>
+    class pop_front
+    {
+    public:
+        using type = typename TPLT::Tail;
+    };
+    
+    // ------------------------------------------------------------------------------
+    // 向Typelsit的开头插入元素
+    template<class TPLT, class NewElem>
+    class push_front
+    {
+    public:
+        using type = Typelist<NewElem, TPLT>;
+    };
+    
+    // ------------------------------------------------------------------------------
+    // 判断Typelist是否为空
+    template<class TPLT>
+    class is_empty : public std::false_type
+    {};
+    
+    template<>
+    class is_empty<NullTypeList> : public std::true_type
+    {};
+    
+    
+}
+```
+
+NullTypeList 代表空的typelist
+Typelist<int, NullTypeList> 代表有一个元素的typelist
+那我typelist中不止有一个元素呢?
+那这个时候就需要用到列表头 + 嵌套列表
+用可变参类模板表达一个有3个类型的typelist
+using TPL_NM2 = typelist<int, double, char>;
+用老式的typelist来表达
+using TPL_NM3 = tplt2::Typelist<int, tplt2::Typelist<double, tplt2::Typelist<char, tplt2::NullTypeList>>>;
+所以，从这里可以看出，老式的typelist无论是写起来还是观感上，都比可变参显得啰嗦和不容易理解
+当然，为了简化老式的书写，我们这里可以定义一些宏来进行简化
+
+### typelist的思考
