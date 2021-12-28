@@ -498,4 +498,115 @@ namespace _nmsp5
 
 ## 元组基本概念、基础代码的设计与实现
 
+boost库中有一个tuple，然后在c++11中，把这个tuple放到标准库中
+
+tuple容器(元组), 是表示元组容器, 是不包含任何结构的,快速而低质(粗制滥造, quick and dirty)的, 可以用于函数返回多个返回值;
+
+tuple容器, 可以使用直接初始化, 和"make_tuple()"初始化, 访问元素使用"get<>()"方法, 注意get里面的位置信息, 必须是常量表达式(const expression);
+
+可以通过"std::tuple_size<decltype(t)>::value"获取元素数量; "std::tuple_element<0, decltype(t)>::type"获取元素类型;
+
+如果tuple类型进行比较, 则需要保持元素数量相同, 类型可以比较, 如相同类型, 或可以相互转换类型(int&double);
+
+无法通过普通的方法遍历tuple容器, 因为"get<>()"方法, 无法使用变量获取值;
+
+通俗来讲，tuple是一个容器，里面可以装各种不同类型元素的数组/容器
+
+```c++
+namespace _nmsp1
+{
+    // 简单使用
+    void func()
+    {
+        std::tuple<float, int, std::string> mytuple(12.4f, 23, std::string("string"));
+        // 这就是一个tuple。一堆各种类型数据的组合
+        // 虽然创建元组的时候，可以创建任意类型，任意数量的元素，但是一旦元组创建好了之后，元组的的数量和类型就固定下来了
+        
+        // get 是一个函数模板
+        std::cout << std::get<0>(mytuple) << std::endl;
+        // 12.4
+    }
+}
+```
+
+
+
+### 泛化、特化、构造函数的实现
+
+tuple 的实现放在这个命名空间中  (tpl)
+首先，tuple的实现要用到可变参类模板，那可变参参数包的展开，有如下几种展开方式
+
+- 1）通过递归继承方式展开 （标准库中的展开方式是递归继承方式，通过观察源码可以看到）
+- 2）通过递归组合方式展开 （那这里自己实现就采用递归组合方式进行参数包展开）
+
+递归组合方式比起递归继承方式的缺点：占用的内存可能会相对多一点（一般也就是一个字节，就是涉及到一个“空白基类优化【EBCO】”）
+
+
+
+### 拷贝构造函数及拷贝构造函数模板的实现
+
+```c++
+namespace tpl
+{
+    // 泛化版本
+    template<typename... Types>
+    class TuplE;
+    
+    // 特化版本1
+    template<typename First, typename... Others>
+    class TuplE<First, Others...>
+    {
+    public:
+        First first;
+        TuplE<Others...> others;
+        
+    public:
+        // 构造函数1,支持创建空的TuplE对象 tpl::TuplE<int, char> a; 
+        // 这种构造方式（虽然你参数类型哪里指定了2个，但是实际传递给构造函数的（）里并没有填写实参）
+        TuplE(){}
+        
+        // 构造函数模板， 支持 tpl::TuplE<float, int, std::string> mytuple(12.4f, 23, std::string("string")); 
+        // 尖括号里给类型，圆括号里给数据的构造方式
+        // C_First：代表一个元素类型，然后C_Others代表其余一包元素类型
+        template<typename C_First, typename... C_Others>
+        TuplE(C_First&& parf, C_Others&&... paro)
+            : first(std::forward<C_First>(parf))        // first/parf代表第一个元素
+            , others(std::forward<C_Others>(paro)...)   // others/paro代表其余元素
+            // others的类型 TuplE<...>这个类型
+        {
+            // std::cout << "TuplE构造函数模板执行了， first = " << first << std::endl;
+            // 但是考虑到不是所有类型都能通过cout输出，为了避免编译报错，这里就不打印了
+        }
+        
+    };
+    
+    // 特化版本2：空元组，不需要存储任何类型，支持 tpl::TuplE<> a; 这构造方式
+    template<>
+    class TuplE<>
+    {
+    public:
+        // 构造函数
+        TuplE()
+        {
+            m_sign = 0; // 随便给一个值，方便调试
+            std::cout << "TuplE特化版本2构造函数执行了 " << std::endl;
+        }
+        
+        // 拷贝构造函数
+    
+    
+        int m_sign;
+        // 引入的目的仅仅是为了设置断点，调试用
+    };
+}
+```
+
+
+
+### 实现获取tuple中元素的get接口
+
+### std::make_tuple的实现
+
+### 总结
+
 ## 操作接口（算法）
