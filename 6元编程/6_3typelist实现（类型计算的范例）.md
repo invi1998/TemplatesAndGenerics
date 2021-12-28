@@ -532,6 +532,34 @@ find_nostrickt调用关系图(当然，他这里是索引值100，我测试代�
 
 ### typelist的思考
 
+最开始提出typelist这个概念的时候，c++编译器还不支持可变参模板，而老式typelist的积极意义在于变相的支持可变参模板，这个在当时看来是很有借鉴意义和创新的技术。通过这个技术可以实现很多如今需要可变参模板才能支持的代码。
+
+比如std::function。
+
+typelist这个东西，它比较适合一次性传输很多类型的场合。比如在设计模式中，typelist就会有比较大的发挥空间。
+
+```c++
+// ------------------------------------------------------------------------------
+    // 使用typelist老式设计，展示一个typelist的基本应用
+    template<class Args>
+    class TestTPclass
+    {
+    public:
+        // 注意这里不要使用find，否者索引越界可能导致编译出错
+        using Arg1 = typename find_nostrict<Args, 0>::type;
+        using Arg2 = typename find_nostrict<Args, 1>::type;
+        using Arg3 = typename find_nostrict<Args, 2>::type;
+        using Arg4 = typename find_nostrict<Args, 3>::type;
+        // ....可以根据需要加入更多的Arg开头类型....
+        
+        
+        void myfunc(Arg1 v1, Arg2 v2)
+        {
+            std::cout << "myfunc(Arg1 v1, Arg2 v2)执行了，参数和 = " << v1 + v2 << std::endl;
+        }
+    };
+```
+
 
 
 ## typelist 完整代码和测试
@@ -950,6 +978,25 @@ namespace tplt2
         using type = typename find_nostrict<Tail, index_v - 1, DefaultType>::type;
     };
     
+    // ------------------------------------------------------------------------------
+    // 使用typelist老式设计，展示一个typelist的基本应用
+    template<class Args>
+    class TestTPclass
+    {
+    public:
+        // 注意这里不要使用find，否者索引越界可能导致编译出错
+        using Arg1 = typename find_nostrict<Args, 0>::type;
+        using Arg2 = typename find_nostrict<Args, 1>::type;
+        using Arg3 = typename find_nostrict<Args, 2>::type;
+        using Arg4 = typename find_nostrict<Args, 3>::type;
+        // ....可以根据需要加入更多的Arg开头类型....
+        
+        
+        void myfunc(Arg1 v1, Arg2 v2)
+        {
+            std::cout << "myfunc(Arg1 v1, Arg2 v2)执行了，参数和 = " << v1 + v2 << std::endl;
+        }
+    };
     
 }
 
@@ -1116,6 +1163,10 @@ int main()
     std::cout << typeid(tplt2::find_nostrict<TPL_NM3, 2>::type).name() << std::endl;
     // char
     
+    // ------------------------------------------------------------------------------
+    tplt2::TestTPclass<MAC_TYPELIST4(int, float, double, std::string)> atp;
+    atp.myfunc(78, 123.3f);
+    // myfunc(Arg1 v1, Arg2 v2)执行了，参数和 = 201.3
     
     
     return 0;
