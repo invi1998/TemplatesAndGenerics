@@ -803,6 +803,54 @@ int main()
 
 ### 实现获取tuple中元素的get接口
 
+在tpl命名空间中的接口实现
+
+```c++
+// 实现获取tuple中元素的get接口
+    // 泛化版本
+    template<int index>
+    class TPLGetIdx
+    {
+    public:
+        template<typename First, typename... Others>
+        static auto myget(const TuplE<First, Others...>& tmpv)  // 这里auto用的很好
+        {
+            return TPLGetIdx<index - 1>::myget(tmpv.others);
+        }
+    };
+    
+    // 特化版本
+    template<>
+    class TPLGetIdx<0>
+    {
+    public:
+        template<typename First, typename... Others>
+        static auto myget(const TuplE<First, Others...>& tmpv)  // 这里auto用的很好
+        {
+            return tmpv.first;
+        }
+    };
+    
+    // 借助上面这个类模板实现get功能
+    template<int index, typename... Types>
+    auto TPLGet(const TuplE<Types...>& tmpv)
+    {
+        return TPLGetIdx<index>::myget(tmpv);
+    }
+```
+
+然后在main中进行调用测试
+
+```c++
+std::cout << "------------------------------------------7----------------------------------------" << std::endl;
+    std::cout << tpl::TPLGet<2>(mytuple) << std::endl;
+    // abc
+```
+
+上述代码调用后，执行的get操作流程如下
+
+![](../img/impicture_20211229_143508.png)
+
 ### std::make_tuple的实现
 
 ### 总结
