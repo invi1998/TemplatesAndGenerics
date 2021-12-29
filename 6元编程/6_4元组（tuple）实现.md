@@ -575,8 +575,11 @@ namespace tpl
             // others的类型 TuplE<...>这个类型
         {
             // std::cout << "TuplE构造函数模板执行了， first = " << first << std::endl;
-            // 但是考虑到不是所有类型都能通过cout输出，为了避免编译报错，这里就不打印了
+            // 但是考虑到不是所有类型都能通过cout输出，为了避免编译报错，这里就不打印first了
+            std::cout << "TuplE特化版本1构造函数模板执行了" << std::endl;
         }
+        
+        // 这里初始化列表中用到了完美转发（std::forward在这里就可以起到提高程序运行效率的作用）
         
     };
     
@@ -593,15 +596,46 @@ namespace tpl
         }
         
         // 拷贝构造函数
-    
-    
+        TuplE(const TuplE<>&)
+        {
+            m_sign = 100;
+            std::cout << "TuplE特化版本2拷贝构造函数执行了" << std::endl;
+        }
+        
         int m_sign;
         // 引入的目的仅仅是为了设置断点，调试用
     };
 }
 ```
 
+myTuple展开后的层次关系图
 
+![](../img/impicture_20211229_103730.png)
+
+ `tpl::TuplE<float, int, std::string> mytuple(12.5f, i, std::string("abc"));`
+
+> TuplE特化版本2构造函数执行了 
+>     TuplE特化版本1构造函数模板执行了
+>     TuplE特化版本1构造函数模板执行了
+>     TuplE特化版本1构造函数模板执行了
+>     
+
+tpl::TuplE<float, int, std::string>
+
+首先先将 float拆分出来 float 和 `tpl::TuplE<int, std::string>`
+
+然后继续将int拆分出来 int 和 `tpl::TuplE<std::string>`
+
+然后在将 std::string拆分出来 std::string 和 tpl::TuplE<>
+
+`tpl::TuplE<>`
+
+然后递归回溯，依次执行的构造函数就是
+
+> TuplE特化版本2构造函数执行了 -> 构造空TuplE
+> TuplE特化版本1构造函数模板执行了 -> 构造 string
+> TuplE特化版本1构造函数模板执行了 -> 构造 int
+> TuplE特化版本1构造函数模板执行了 -> 构造 float
 
 ### 实现获取tuple中元素的get接口
 
