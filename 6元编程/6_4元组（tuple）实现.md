@@ -853,6 +853,56 @@ std::cout << "------------------------------------------7-----------------------
 
 ### std::make_tuple的实现
 
+std::make_tuple的实现，c++标准库中有一个std::make_tuple，这个是一个函数模板，他的功能就是给定一堆值然后创建一个tuple对象
+
+ make_tuple有一个使用限制，就是必须已知元素数量才能使用
+
+​    `auto mytu = std::make_tuple<12.5f,100,std::string("abc")>;`  // 3个元素
+
+```c++
+// MakeTuple演示了类型推导技术，函数模板可以通过实参中给进来的元素值推导出元素类型
+// 这样创建元组就会很方便，不用我们手动去指定元素类型，直接让编译器根据实参进行类型推导
+template<typename... Types>
+auto MakeTuple(Types&&... Args) // 形参时万能引用（转发引用）
+{
+    // 退化（decay）
+    return tpl::TuplE<std::decay_t<Types>...>(std::forward<Types>(Args)...);
+}
+```
+
+使用测试结果
+
+```c++
+std::cout << "------------------------------------------8----------------------------------------" << std::endl;
+    auto tes6 = MakeTuple(12.5f, 100, std::string("xyz"));
+    // TuplE特化版本2构造函数执行了 
+    // TuplE特化版本1构造函数模板执行了
+    // TuplE特化版本1构造函数模板执行了
+    // TuplE特化版本1�造函数模板执行了
+    std::cout << tpl::TPLGet<2>(tes6) << std::endl;
+    // xyz
+```
+
+
+
 ### 总结
+
+当然我们现在的这个代码还不完善，比如TuplE中，嵌套TuplE类型，当元素数量超过一个的时候，构造函数模板的初始化列表就会出错
+    
+
+```c++
+tpl::TuplE<int, double> vt1(100, 12.33);
+tpl::TuplE<tpl::TuplE<int, double>> vt2(vt1);
+```
+
+​    编译报错
+
+​    产生这个错误的原因就是拷贝构造函数模板中C_First类型和我们这里 vt1 的类型不匹配导致
+
+​    为了应对这个情况，我们还是需要通过std::enable_if来书写新的拷贝构造函数模板
+
+​    这里就不再进一步展开了
+
+无需过分强求完美的设计和实现，只要能够做到随时发现问题，并改善问题即可
 
 ## 操作接口（算法）
