@@ -906,3 +906,11 @@ tpl::TuplE<tpl::TuplE<int, double>> vt2(vt1);
 无需过分强求完美的设计和实现，只要能够做到随时发现问题，并改善问题即可
 
 ## 操作接口（算法）
+
+### 从tuple中移除第一个类型（pop_front_type)
+
+### 向tuple的开头和结尾插入一个元素（push_front，push_back)
+
+### 从tuple中移除第一个元素（pop_front)
+
+### 颠倒（反转）一个tuple中元素的顺序（reserve）
