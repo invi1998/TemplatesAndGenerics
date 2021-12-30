@@ -334,3 +334,42 @@ public:
 
 
 ## 释放容器中元素所占用的内存
+
+首先，计划添加一个clear函数来进行内存释放工作，但是这里并不打算在clear函数中释放这个特殊节点的内存，clear函数只释放这些真正存放数据的节点，特殊节点的内存可以放到mylist类模板的析构函数中进行
+
+```c++
+private:
+        void clear()
+        {
+            if(head->next != head)
+            {
+                // 当前容器不为空
+                mylist_node<T>* currentNode = head->next;
+                // currentNode 指向第一个有效节点
+                while(currentNode != head)
+                {
+                    // 一直循环遍历，只要当前节点不指向特殊节点
+                    mylist_node<T>* nextnode = currentNode->next;
+                    // nextnode指向当前节点的下一个节点
+                    delete currentNode;
+                    // 释放当前节点所指向的内存
+                    currentNode = nextnode;
+                    // 让currentNode指向下一个节点
+                }
+            }
+        }
+```
+
+然后在析构函数中调用
+
+```c++
+ ~mylist()   // 析构函数
+        {
+            clear();
+            // 注意clear的位置，要放在head内存释放之前
+            delete head;
+            // delete (void*)head;
+            head = nullptr;
+        }
+```
+
