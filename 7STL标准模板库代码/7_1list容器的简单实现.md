@@ -276,4 +276,61 @@ namespace lis
 
 ## 插入新元素
 
+![](../img/impicture_20211230_180818.png)
+
+push_back主要做了4件事
+
+修改新插入元素（也就是新插入的mylist_noe节点）的next指针，指向容器中的下一个mylist_node节点，这里只是因为我们当前值插入了一个元素，也就是容器中没有下一个节点，只有特殊的这个mylist_node对象节点存在，所以新插入进来的节点的next指向这个特殊的mylist_node节点
+
+修改prev指针，因为新插入进来的prev指针应该是指向前一个mylist_node节点，但是同样因为这里没有前一个节点，所以这里就指向这个特殊节点
+
+然后修改老的节点next指针，对于这个特殊节点，因为新插入的这个mylist_node存在，所以这个特殊节点的next指针就指向新插入进来的节点的next，这里额外还需要注意一点就是，这个特殊节点的next，要始终保证指向list的最前面那个元素，新插入进来这个节点在这种情况下就成为了这个最前面的那个元素，所以，这个特殊节点的next才指向这个新节点的next
+
+老节点的prev指针，对于这个特殊节点，因为新插入的这个mylist_node存在，所以这个特殊节点的prev指针就指向新插入进来的节点的next
+
+同样对于有一个元素存在的情况，使用push_back操作结果就是如图所示
+
+![](../img/impicture_20211230_193939.png)
+
+
+
+![](../img/impicture_20211230_194316.png)
+
+```c++
+public:
+        void push_back(const T& tmpv)
+        {
+            // 创建一个待加入的节点
+            mylist_node<T>* tnewNode = new mylist_node<T>(tmpv);
+            if(head->next == head)  // 等价于if (begin() == end()) 判断当前list列表是否为空
+            {
+                // 列表为空
+                tnewNode->next = head;
+                // 新 mylist_node 对象节点的next指针指向这个链表的mylist_node特殊对象结点
+                tnewNode->prev = head;
+                // 新 mylist_node 对象节点的prev指针指向这个链表的mylist_node特殊对象结点
+                head->next = tnewNode;
+                // 对于已经存在的特殊mylist_node对象节点的next指针，始终要指向mylist整个容器中的最前面的元素
+                // 所以在这里指向的应该是新的这个mylist_node对象节点
+                head->prev = tnewNode;
+                // 对于已经存在的特殊mylist_node对象节点的prev指针，始终要指向mylist整个容器中的最末尾的元素
+                // 所以在这里指向的应该是新的这个mylist_node对象节点
+            }
+            else
+            {
+                // 当前容器元素不为空
+                tnewNode->next = head;
+                // 新插入的mylsit_node对象节点的next指针指向这个特殊的对象节点
+                tnewNode->prev = head->prev;
+                // 新插入的mylsit_node对象节点的prev指针指向这个特殊的对象节点的prev
+                head->prev->next = tnewNode;
+                // 将前一个的mylist_node节点的next指针更新指向新插入和这个节点上
+                head->prev = tnewNode;
+                // 将特殊mylist_node对象节点的prev指针更新指向新插入的这个mylist_node对象节点上
+            }
+        }
+```
+
+
+
 ## 释放容器中元素所占用的内存
