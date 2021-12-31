@@ -375,3 +375,97 @@ private:
 
 如果我们new出来的指针是一个基本类型，没什么关系，内存还是会被释放的，但是如果是一个类对象指针，在处理过程中转成了void*，那就有问题了，析构函数将不会被调用。
  故new的指针类型要和delete的指针类型要保持一致。
+
+
+
+## 实现find_if
+
+```c++
+/******************************************************************************
+
+Welcome to GDB Online.
+GDB online is an online compiler and debugger tool for C, C++, Python, PHP, Ruby, 
+C#, VB, Perl, Swift, Prolog, Javascript, Pascal, HTML, CSS, JS
+Code, Compile, Run and Debug online from anywhere in world.
+
+*******************************************************************************/
+#include <stdio.h>
+#include <iostream>
+#include <list>
+
+namespace _nmsp1
+{
+    // T 代表迭代器类型， U代表可调用对象（可调用对象常常被作为算法参数）
+    template<class T, class U>
+    T myFindIf(T first, T last, U funcObj)
+    {
+        for(; first != last; ++first)
+        {
+            if(funcObj(*first))
+            {
+                break;
+            }
+        }
+        return first;
+    }
+    
+    
+    void func()
+    {
+        std::list<int> mylist;
+        mylist.push_back(1);
+        mylist.push_back(3);
+        mylist.push_back(7);
+        mylist.push_back(2);
+        
+        auto result = std::find_if(mylist.begin(), mylist.end(), [](int val){
+            if (val > 0) {
+                return true;
+                // 返回true就停止遍历
+            }
+            return false;
+        });
+        
+        auto result2 = myFindIf(mylist.begin(), mylist.end(), [](int val){
+            if (val > 4) {
+                return true;
+                // 返回true就停止遍历
+            }
+            return false;
+        });
+        
+        // 这里find_if的第三个参数，一般被称为 谓词 （predicate），
+        // 可以理解成用在算法中作为参数来定义某些运算规则或者指明算法要进行何种操作的可调用对象
+        // 可调用对象在调用后一般都会返回true或者false
+        
+        if (result == mylist.end())
+        {
+            std::cout << "没找到" << std::endl;
+        }
+        else
+        {
+            std::cout << "找到结果 = " << *result << std::endl;
+            // 找到结果 = 1
+        }
+        
+        if (result2 == mylist.end())
+        {
+            std::cout << "没找到" << std::endl;
+        }
+        else
+        {
+            std::cout << "找到结果 = " << *result2 << std::endl;
+            // 找到结果 = 7
+        }
+    }
+}
+
+int main()
+{
+    _nmsp1::func();
+    
+    return 0;
+}
+
+```
+
